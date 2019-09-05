@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:validators/validators.dart';
 
 void main() => runApp(MaterialApp(
       home: Home(),
@@ -32,27 +33,25 @@ class _HomeState extends State<Home> {
   }
 
   void _addToDo() {
-    setState(() {
-      Map<String, dynamic> newToDo = Map();
-      newToDo['title'] = _toDoController.text;
-      _toDoController.text = '';
-      newToDo['ok'] = false;
-      _toDoList.add(newToDo);
-      _saveData();
-    });
+    if (isEmail(_toDoController.text)) {
+      setState(() {
+        Map<String, dynamic> newToDo = Map();
+        newToDo['title'] = _toDoController.text;
+        _toDoController.text = '';
+        _toDoList.add(newToDo);
+        _saveData();
+      });
+    } else {
+      _showDialog('Aviso', 'Preencha com E-mail Válido !');
+    }
   }
 
   Future<Null> _refresh() async {
     await Future.delayed(Duration(seconds: 1));
     setState(() {
+      //orderna list
       _toDoList.sort((a, b) {
-        if (a['ok'] && !b['ok']) {
-          return 1;
-        } else if (!a['ok'] && b['ok']) {
-          return -1;
-        } else {
-          return 0;
-        }
+        return a['title'].toLowerCase().compareTo(b['title'].toLowerCase());
       });
     });
     return null;
@@ -74,7 +73,9 @@ class _HomeState extends State<Home> {
               children: <Widget>[
                 Expanded(
                   child: TextField(
+                    keyboardType: TextInputType.emailAddress,
                     decoration: InputDecoration(
+                      prefixIcon: Icon(Icons.email),
                       labelText: "Nova E-mail",
                       labelStyle: TextStyle(color: Colors.blueAccent),
                     ),
@@ -86,7 +87,11 @@ class _HomeState extends State<Home> {
                   child: Text("Salvar"),
                   textColor: Colors.white,
                   onPressed: () {
-                    _addToDo();
+                    setState(() {
+                      _addToDo();
+                      _toDoController.text = '';
+                      FocusScope.of(context).requestFocus(new FocusNode());
+                    });
                   },
                 ),
               ],
@@ -125,7 +130,10 @@ class _HomeState extends State<Home> {
         trailing: RaisedButton(
           //trailing right , leading left
           color: Colors.green,
-          child: Text("Enviar"),
+          child: Text(
+            "Enviar",
+            style: TextStyle(color: Colors.white),
+          ),
           onPressed: () {
             _launchURL(_toDoList[index]['title']);
           },
@@ -157,7 +165,7 @@ class _HomeState extends State<Home> {
 
   //open email
   _launchURL(String email) async {
-    String url = "mailto:$email?subject=Título&body=Text";
+    String url = "mailto:$email?subject=Title&body=Text";
     if (await canLaunch(url)) {
       await launch(url);
     } else {
@@ -168,7 +176,6 @@ class _HomeState extends State<Home> {
 //retorna arquivo
   Future<File> _getFile() async {
     final directory = await getApplicationDocumentsDirectory();
-//    return File("${directory.path}/data.json");
     return File("${directory.path}/emails.json");
   }
 
@@ -187,5 +194,27 @@ class _HomeState extends State<Home> {
     } catch (e) {
       return null;
     }
+  }
+
+  void _showDialog(String title, String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // retorna um objeto do tipo Dialog
+        return AlertDialog(
+          title: new Text(title),
+          content: new Text(message),
+          actions: <Widget>[
+            // define os botões na base do dialogo
+            new FlatButton(
+              child: new Text("Fechar"),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 }

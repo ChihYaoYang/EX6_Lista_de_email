@@ -25,6 +25,7 @@ dependencies:
   cupertino_icons: ^0.1.2
   path_provider: ^0.4.1
   url_launcher: ^5.0.3
+  validators: ^2.0.0
 
 dev_dependencies:
   flutter_test:
